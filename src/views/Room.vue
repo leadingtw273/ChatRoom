@@ -1,5 +1,6 @@
 <script>
 import io from 'socket.io-client';
+import dayjs from 'dayjs';
 import axios from 'axios';
 
 const instance = axios.create({
@@ -18,18 +19,24 @@ export default {
     };
   },
   computed: {
-    sortMessages() {
-      const target = this.messages.slice();
-      return target.sort((a, b) => a.id - b.id);
-    },
     userName() {
       return this.$store.state.user;
     },
     roomId() {
-      return Number(this.$route.params.id);
+      return this.$route.params.id;
     },
   },
   methods: {
+    sortData(data, count = 1) {
+      return data
+        .slice()
+        .sort((a, b) =>
+          dayjs(a.createTime).isBefore(dayjs(b.createTime)) ? count : -count
+        );
+    },
+    printTime(time) {
+      return dayjs(time).format('YYYY/MM/DD HH:mm:ss');
+    },
     addMsg() {
       if (this.message !== '') {
         instance
@@ -41,8 +48,8 @@ export default {
             return {
               roomId: this.roomId,
               message: {
+                createTime: dayjs().format(),
                 from: this.userName,
-                id: this.messages.length,
                 message: res.data.encrypt_text,
                 Um: res.data.Um,
               },
@@ -50,11 +57,6 @@ export default {
           })
           .then(data => {
             socket.emit('setMessage', data);
-            this.messages.push({
-              id: this.messages.length,
-              message: this.message,
-              from: this.userName,
-            });
             this.message = '';
           })
           .catch(err => {
@@ -75,7 +77,7 @@ export default {
     scrollItem.scrollTop = scrollItem.scrollHeight;
   },
   created() {
-    socket = io('http://127.0.0.1:3000/', {
+    socket = io('http://localhost:3000/', {
       path: '/messages',
     });
     socket.emit('getMessage', { id: this.roomId });
@@ -91,6 +93,7 @@ export default {
             })
             .then(res => {
               this.messages.push({
+                createTime: cryptData.createTime,
                 from: cryptData.from,
                 id: cryptData.id,
                 message: res.data.decrypt_text,
@@ -114,6 +117,7 @@ export default {
         })
         .then(res => {
           this.messages.push({
+            createTime: data.createTime,
             from: data.from,
             id: data.id,
             message: res.data.decrypt_text,
@@ -149,8 +153,8 @@ export default {
         <button
           class="btn btn-primary my-1"
           type="button"
-          v-bind:disabled="reLoadDisabled"
-          v-on:click="setKey()"
+          :disabled="reLoadDisabled"
+          @click="setKey()"
         >RELOAD</button>
       </div>
     </div>
@@ -158,12 +162,16 @@ export default {
       <div class="message-bar">
         <div
           class="message-item text-left"
-          v-for="message in sortMessages"
+          v-for="message in sortData(messages, -1)"
           :key="message.id"
-          v-bind:class="message.from === userName ? 'user' : ''"
         >
-          <p class="name">{{message.from}}</p>
-          <p class="text">{{message.message}}</p>
+          <p
+            :class="['name', message.from === userName ? 'text-primary' : 'text-info']"
+          >{{message.from}}</p>
+          <div class="text d-flex justify-content-between align-items-end">
+            <span class="text-message">{{message.message}}</span>
+            <span class="text-time">{{printTime(message.createTime)}}</span>
+          </div>
         </div>
       </div>
       <div class="input-bar px-3">
@@ -175,8 +183,8 @@ export default {
             <button
               class="btn btn-primary"
               type="button"
-              v-on:click="addMsg()"
-              v-bind:disabled="key === ''"
+              @click="addMsg()"
+              :disabled="key === ''"
             >send</button>
           </div>
         </div>
@@ -218,6 +226,9 @@ export default {
         }
         .text {
           word-wrap: break-word;
+          .text-time {
+            font-size: 12px;
+          }
         }
       }
     }

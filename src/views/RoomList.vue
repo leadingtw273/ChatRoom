@@ -1,59 +1,65 @@
 <script>
 import io from 'socket.io-client';
+import dayjs from 'dayjs';
 
 let socket = {};
 export default {
-    name: 'RoomList',
-    data() {
-        return {
-            roomName: '',
-            rooms: [],
+  name: 'RoomList',
+  data() {
+    return {
+      roomName: '',
+      rooms: [],
+    };
+  },
+  computed: {
+    userName() {
+      return this.$store.state.user;
+    },
+  },
+  methods: {
+    sortData(data, count = 1) {
+      return data
+        .slice()
+        .sort((a, b) =>
+          dayjs(a.createTime).isBefore(dayjs(b.createTime)) ? count : -count
+        );
+    },
+    printTime(time) {
+      return dayjs(time).format('YYYY/MM/DD HH:mm:ss');
+    },
+    clickRoom(id) {
+      this.$router.push({
+        name: 'Room',
+        params: { id },
+      });
+    },
+    addRoom() {
+      if (this.roomName !== '') {
+        const data = {
+          createTime: dayjs().format(),
+          roomName: this.roomName,
+          master: this.userName,
         };
+        socket.emit('setRoom', data);
+        this.roomName = '';
+      }
     },
-    computed: {
-        sortRooms() {
-            const target = this.rooms.slice();
-            return target.sort((a, b) => a.id - b.id);
-        },
-        userName() {
-            return this.$store.state.user;
-        },
-    },
-    methods: {
-        clickRoom(id) {
-            this.$router.push({
-                name: 'Room',
-                params: { id },
-            });
-        },
-        addRoom() {
-            if (this.roomName !== '') {
-                const data = {
-                    id: this.rooms.length,
-                    roomName: this.roomName,
-                    createBy: this.userName,
-                };
-                socket.emit('setRoom', data);
-                this.rooms.push(data);
-                this.roomName = '';
-            }
-        },
-    },
-    created() {
-        socket = io('http://120.119.73.1:3000/', {
-            path: '/rooms',
-        });
-        socket.emit('getRooms');
-        socket.on('rooms', data => {
-            this.rooms = data;
-        });
-        socket.on('pushRoom', data => {
-            this.rooms.push(data);
-        });
-    },
-    beforeDestroy() {
-        socket.close();
-    },
+  },
+  created() {
+    socket = io('http://localhost:3000/', {
+      path: '/rooms',
+    });
+    socket.emit('getRooms');
+    socket.on('rooms', data => {
+      this.rooms = data;
+    });
+    socket.on('pushRoom', data => {
+      this.rooms.push(data);
+    });
+  },
+  beforeDestroy() {
+    socket.close();
+  },
 };
 </script>
 
@@ -92,7 +98,7 @@ export default {
                 </div>
               </div>
               <div class="col-sm-2 d-flex justify-content-end">
-                <button class="btn btn-primary my-1" type="button" v-on:click="addRoom">NEW</button>
+                <button class="btn btn-primary my-1" type="button" @click="addRoom">NEW</button>
               </div>
             </div>
           </form>
@@ -103,19 +109,32 @@ export default {
       <a
         href="javascript:;"
         class="list-group-item list-group-item-action d-flex justify-content-center"
-        v-for="(room, index) in sortRooms"
-        v-bind:key="room.id"
-        v-on:click="clickRoom(room.id)"
+        v-for="(room, index) in sortData(rooms)"
+        :key="room.id"
+        @click="clickRoom(room.id)"
       >
         <div class="row">
-          <h5 class="col-2 room-index">{{index + 1 }}</h5>
-          <p class="col-7 room-name">{{room.roomName}}</p>
-          <span
-            class="col-3 badge room-creater"
-            v-bind:class="room.createBy === username?'badge-primary':'badge-info'"
+          <div class="col-2 text-info room-index d-flex align-items-center">
+            <span>
+              <i class="fas fa-angle-left"></i>
+              {{index + 1 }}
+              <i class="fas fa-angle-right"></i>
+            </span>
+          </div>
+          <div class="col-5 room-name d-flex align-items-center">
+            <span class>{{room.roomName}}</span>
+          </div>
+          <div class="col-2 room-time d-flex align-items-center">
+            <span>
+              <em>{{printTime(room.createTime)}}</em>
+            </span>
+          </div>
+          <div
+            class="col-3 badge room-creater d-flex align-items-center"
+            :class="room.master === userName?'badge-success':'badge-primary'"
           >
-            <small class>{{room.createBy}}</small>
-          </span>
+            <span>{{room.master}}</span>
+          </div>
         </div>
       </a>
     </div>
@@ -126,34 +145,39 @@ export default {
 @import '../assets/style/all.scss';
 
 .ChatRoomList {
-    .list-group-item-action {
-        color: $gray-800;
-        > div {
-            width: 100%;
+  .list-group-item-action {
+    color: $gray-800;
+    > div {
+      width: 100%;
 
-            > * {
-                margin: 0px;
-                padding: 0px;
-            }
-            > .room-index {
-                text-align: left;
-            }
-            > .room-name {
-                text-align: left;
-                font-weight: bold;
-            }
-            > .room-creater {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 3px;
-            }
-        }
-        &:hover {
-            background-color: $primary;
-            color: white;
-        }
+      > * {
+        margin: 0px;
+        padding: 0px;
+      }
+      > .room-index {
+        text-align: left;
+        font-size: 18px;
+      }
+      > .room-name {
+        text-align: left;
+        font-weight: bold;
+      }
+      > .room-time {
+        text-align: center;
+        font-size: 5px;
+      }
+      > .room-creater {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px;
+      }
     }
+    &:hover {
+      background-color: $primary;
+      color: white;
+    }
+  }
 }
 </style>
 
