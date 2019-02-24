@@ -1,13 +1,9 @@
 <script>
 import io from 'socket.io-client';
 import dayjs from 'dayjs';
-import axios from 'axios';
-
-const instance = axios.create({
-  baseURL: 'http://120.119.73.1:5000/',
-});
 
 let socket = {};
+let chaos_socket = {};
 export default {
   name: 'Room',
   data() {
@@ -39,29 +35,11 @@ export default {
     },
     addMsg() {
       if (this.message !== '') {
-        instance
-          .post('/AES_encrypt', {
-            key: this.key,
-            data: this.message,
-          })
-          .then(res => {
-            return {
-              roomId: this.roomId,
-              message: {
-                createTime: dayjs().format(),
-                from: this.userName,
-                message: res.data.encrypt_text,
-                Um: res.data.Um,
-              },
-            };
-          })
-          .then(data => {
-            socket.emit('setMessage', data);
-            this.message = '';
-          })
-          .catch(err => {
-            console.log(err);
-          });
+        console.log(this.message);
+        chaos_socket.emit('encrypt', {
+          _key: this.key,
+          _target: this.message,
+        });
       }
     },
     setKey() {
@@ -80,54 +58,56 @@ export default {
     socket = io('http://localhost:3000/', {
       path: '/messages',
     });
-    socket.emit('getMessage', { id: this.roomId });
-    socket.on('messages', data => {
-      const forPromis = [];
-      data.forEach(cryptData => {
-        forPromis.push(
-          instance
-            .post('/AES_decrypt', {
-              data: cryptData.message,
-              Um: cryptData.Um,
-              key: this.key,
-            })
-            .then(res => {
-              this.messages.push({
-                createTime: cryptData.createTime,
-                from: cryptData.from,
-                id: cryptData.id,
-                message: res.data.decrypt_text,
-              });
-            })
-            .catch(err => console.log(err))
-        );
-      });
-      Promise.all(forPromis)
-        .then(() => {
-          this.reLoadDisabled = false;
-        })
-        .catch(err => console.log(err));
+    chaos_socket = io('http://192.168.0.4:9453/', {
+      path: '/chaos',
     });
+    socket.emit('getMessage', { id: this.roomId });
+
+    chaos_socket.on('encrypt_data', data => {
+      socket.emit('setMessage', {
+        roomId: this.roomId,
+        message: {
+          createTime: dayjs().format(),
+          from: this.userName,
+          message: data._target,
+          Um: data._Um,
+        },
+      });
+    });
+
+    chaos_socket.on('decrypt_data', data => {
+      this.messages.push({
+        createTime: data.createTime,
+        from: data.from,
+        id: data.id,
+        message: data._target,
+      });
+      this.reLoadDisabled = false;
+    });
+
+    socket.on('messages', data => {
+      data.forEach(cryptData => {
+        chaos_socket.emit('decrypt', {
+          _target: cryptData.message,
+          _Um: cryptData.Um,
+          _key: this.key,
+          ...cryptData,
+        });
+      });
+    });
+
     socket.on('pushMessage', data => {
-      instance
-        .post('/AES_decrypt', {
-          data: data.message,
-          Um: data.Um,
-          key: this.key,
-        })
-        .then(res => {
-          this.messages.push({
-            createTime: data.createTime,
-            from: data.from,
-            id: data.id,
-            message: res.data.decrypt_text,
-          });
-        })
-        .catch(err => console.log(err));
+      chaos_socket.emit('decrypt', {
+        _target: data.message,
+        _Um: data.Um,
+        _key: this.key,
+        ...data,
+      });
     });
   },
   beforeDestroy() {
     socket.close();
+    chaos_socket.close();
   },
 };
 </script>
