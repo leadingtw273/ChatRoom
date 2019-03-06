@@ -1,8 +1,10 @@
 <script>
 import io from 'socket.io-client';
 import dayjs from 'dayjs';
+import ip from '../../config/ip.js';
 
-let socket = {};
+const socket = io(ip.dev.backend, { path: '/rooms' });
+
 export default {
   name: 'RoomList',
   data() {
@@ -11,22 +13,7 @@ export default {
       rooms: [],
     };
   },
-  computed: {
-    userName() {
-      return this.$store.state.user;
-    },
-  },
   methods: {
-    sortData(data, count = 1) {
-      return data
-        .slice()
-        .sort((a, b) =>
-          dayjs(a.createTime).isBefore(dayjs(b.createTime)) ? count : -count
-        );
-    },
-    printTime(time) {
-      return dayjs(time).format('YYYY/MM/DD HH:mm:ss');
-    },
     clickRoom(id) {
       this.$router.push({
         name: 'Room',
@@ -46,16 +33,15 @@ export default {
     },
   },
   created() {
-    socket = io('http://localhost:3000/', {
-      path: '/rooms',
-    });
-    socket.emit('getRooms');
     socket.on('rooms', data => {
       this.rooms = data;
     });
+
     socket.on('pushRoom', data => {
       this.rooms.push(data);
     });
+
+    socket.emit('getRooms');
   },
   beforeDestroy() {
     socket.close();
@@ -109,7 +95,7 @@ export default {
       <a
         href="javascript:;"
         class="list-group-item list-group-item-action d-flex justify-content-center"
-        v-for="(room, index) in sortData(rooms)"
+        v-for="(room, index) in $_timeSort(rooms)"
         :key="room.id"
         @click="clickRoom(room.id)"
       >
@@ -126,12 +112,12 @@ export default {
           </div>
           <div class="col-2 room-time d-flex align-items-center">
             <span>
-              <em>{{printTime(room.createTime)}}</em>
+              <em>{{$_timeFormat(room.createTime,'YYYY/MM/DD HH:mm:ss')}}</em>
             </span>
           </div>
           <div
             class="col-3 badge room-creater d-flex align-items-center"
-            :class="room.master === userName?'badge-success':'badge-primary'"
+            :class="room.master === $_userName?'badge-success':'badge-primary'"
           >
             <span>{{room.master}}</span>
           </div>

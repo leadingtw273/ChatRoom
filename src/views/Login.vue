@@ -1,45 +1,57 @@
 <script>
-import io from 'socket.io-client';
+import _ from 'lodash';
+import HENMAP from '../plugins/HENMAP.js';
 
-let socket = {};
+const chaos = new HENMAP(0.00001, [-0.0001, 0.0001]);
+
 export default {
   name: 'Login',
+  sockets: {
+    chaos_next_um({ _x, _step, _isSync }) {
+      this.isSync = _isSync;
+      if (!this.isSync) {
+        this.chaosValue.step = _step + 1;
+        this.chaosValue.x = chaos.runChaos(this.chaosValue.step, _x);
+        this.chaosValue.um = chaos.createUm(this.chaosValue.x);
+
+        this.$socket.emit('chaos_um', _.cloneDeep(this.chaosValue));
+      }
+    },
+  },
   data() {
     return {
-      username: '',
+      userName: '',
+      isSync: false,
+      chaosValue: {
+        step: 100,
+        x: [],
+        um: 0,
+      },
     };
+  },
+  watch: {
+    isSync(val) {
+      if (this.userName !== '' && val) {
+        const key = this.chaosValue.x
+          .map(val => val.toString().slice(0, val.toString().indexOf('.') + 5))
+          .join('/');
+        this.$store.commit('SET_USER', { user: this.userName });
+        this.$store.commit('SET_PRIVATE_KEY', { key });
+        this.$router.push({ name: 'RoomList' });
+      }
+    },
   },
   methods: {
     loginUser() {
-      this.$store.commit('loginUser', { user: this.username });
-      this.$router.push({
-        name: 'RoomList',
-      });
-    },
-    socketTest() {
-      const data = {
-        name: 'mark',
-        message: 'test',
-      };
+      const CHAOS_INIT_VALUE = chaos.getRandomInitValue();
 
-      socket.emit('test', data);
+      const step = 100;
+      const x = chaos.chaosInit(CHAOS_INIT_VALUE, step);
+      const um = chaos.createUm(x);
+
+      this.chaosValue = { x, step, um };
+      this.$socket.emit('chaos_ready', this.chaosValue);
     },
-  },
-  created() {
-    console.log('create');
-    try {
-      socket = io('http://192.168.0.4:9453/', {
-        path: '/chaos',
-      });
-      socket.on('get', data => {
-        console.log(data);
-      });
-    } catch (e) {
-      console.log(e);
-    }
-  },
-  beforeDestroy() {
-    socket.close();
   },
 };
 </script>
@@ -56,12 +68,11 @@ export default {
             type="text"
             name="username"
             placeholder="username"
-            v-model="username"
+            v-model="userName"
           >
         </div>
       </div>
       <button type="button" class="btn btn-primary" @click="loginUser">login</button>
     </div>
-    <button type="button" class="btn btn-primary mt-4" @click="socketTest">Socket Test</button>
   </div>
 </template>

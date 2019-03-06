@@ -1,11 +1,32 @@
 <script>
 import io from 'socket.io-client';
 import dayjs from 'dayjs';
+import ip from '../../config/ip.js';
 
-let socket = {};
-let chaos_socket = {};
+const back_socket = io(ip.dev.backend, { path: '/messages' });
+
 export default {
   name: 'Room',
+  sockets: {
+    encrypt_data(data) {
+      const dec_data = this.$_decryptData(data);
+
+      back_socket.emit('setMessage', {
+        roomId: this.$_roomId,
+        message: {
+          createTime: dayjs().format(),
+          from: this.$_userName,
+          message: dec_data._target,
+          Um: dec_data._Um,
+        },
+      });
+    },
+    decrypt_data(data) {
+      const { createTime, from, id, _target } = this.$_decryptData(data);
+      this.messages.push({ createTime, from, id, message: _target });
+      this.reLoadDisabled = false;
+    },
+  },
   data() {
     return {
       reLoadDisabled: true,
@@ -14,39 +35,25 @@ export default {
       key: '',
     };
   },
-  computed: {
-    userName() {
-      return this.$store.state.user;
-    },
-    roomId() {
-      return this.$route.params.id;
-    },
-  },
   methods: {
-    sortData(data, count = 1) {
-      return data
-        .slice()
-        .sort((a, b) =>
-          dayjs(a.createTime).isBefore(dayjs(b.createTime)) ? count : -count
-        );
-    },
-    printTime(time) {
-      return dayjs(time).format('YYYY/MM/DD HH:mm:ss');
+    dec_message(msg) {
+      return Buffer.from(msg, 'hex').toString();
     },
     addMsg() {
-      if (this.message !== '') {
-        console.log(this.message);
-        chaos_socket.emit('encrypt', {
-          _key: this.key,
+      if (this.message != '') {
+        const enc_data = this.$_encrypData({
           _target: this.message,
+          _key: this.key,
         });
+        this.$socket.emit('encrypt', enc_data);
+        this.message = '';
       }
     },
     setKey() {
       if (this.key !== '') {
         this.reLoadDisabled = true;
         this.messages = [];
-        socket.emit('getMessage', { id: this.roomId });
+        back_socket.emit('getMessage', { id: this.$_roomId });
       }
     },
   },
@@ -55,59 +62,34 @@ export default {
     scrollItem.scrollTop = scrollItem.scrollHeight;
   },
   created() {
-    socket = io('http://localhost:3000/', {
-      path: '/messages',
-    });
-    chaos_socket = io('http://192.168.0.4:9453/', {
-      path: '/chaos',
-    });
-    socket.emit('getMessage', { id: this.roomId });
-
-    chaos_socket.on('encrypt_data', data => {
-      socket.emit('setMessage', {
-        roomId: this.roomId,
-        message: {
-          createTime: dayjs().format(),
-          from: this.userName,
-          message: data._target,
-          Um: data._Um,
-        },
-      });
-    });
-
-    chaos_socket.on('decrypt_data', data => {
-      this.messages.push({
-        createTime: data.createTime,
-        from: data.from,
-        id: data.id,
-        message: data._target,
-      });
-      this.reLoadDisabled = false;
-    });
-
-    socket.on('messages', data => {
+    back_socket.on('messages', data => {
       data.forEach(cryptData => {
-        chaos_socket.emit('decrypt', {
+        const enc_data = this.$_encrypData({
           _target: cryptData.message,
           _Um: cryptData.Um,
           _key: this.key,
           ...cryptData,
         });
+
+        this.$socket.emit('decrypt', enc_data);
       });
     });
 
-    socket.on('pushMessage', data => {
-      chaos_socket.emit('decrypt', {
+    back_socket.on('pushMessage', data => {
+      const enc_data = this.$_encrypData({
         _target: data.message,
         _Um: data.Um,
         _key: this.key,
         ...data,
       });
+
+      this.$socket.emit('decrypt', enc_data);
     });
+
+    back_socket.emit('getMessage', { id: this.$_roomId });
   },
   beforeDestroy() {
-    socket.close();
-    chaos_socket.close();
+    back_socket.close();
   },
 };
 </script>
@@ -142,15 +124,15 @@ export default {
       <div class="message-bar">
         <div
           class="message-item text-left"
-          v-for="message in sortData(messages, -1)"
+          v-for="message in $_timeSort(messages, -1)"
           :key="message.id"
         >
           <p
-            :class="['name', message.from === userName ? 'text-primary' : 'text-info']"
+            :class="['name', message.from === $_userName ? 'text-primary' : 'text-info']"
           >{{message.from}}</p>
           <div class="text d-flex justify-content-between align-items-end">
-            <span class="text-message">{{message.message}}</span>
-            <span class="text-time">{{printTime(message.createTime)}}</span>
+            <span class="text-message">{{dec_message(message.message)}}</span>
+            <span class="text-time">{{$_timeFormat(message.createTime, 'YYYY/MM/DD HH:mm:ss')}}</span>
           </div>
         </div>
       </div>
@@ -159,7 +141,7 @@ export default {
         <div class="input-group">
           <input type="text" class="form-control" placeholder="text" v-model="message">
           <div class="input-group-append">
-            <span class="input-group-text" id="basic-addon1">{{userName}}</span>
+            <span class="input-group-text" id="basic-addon1">{{$_userName}}</span>
             <button
               class="btn btn-primary"
               type="button"
