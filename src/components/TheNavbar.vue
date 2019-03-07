@@ -17,7 +17,7 @@ export default {
         <button
           class="btn btn-outline-warning"
           @click="$_toPage('Login')"
-          v-if="$_userName !== ''"
+          v-if="$_userName != null"
         >{{$_userName}}</button>
       </div>
     </nav>

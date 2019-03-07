@@ -1,9 +1,5 @@
 <script>
-import io from 'socket.io-client';
 import dayjs from 'dayjs';
-import ip from '../../config/ip.js';
-
-const socket = io(ip.dev.backend, { path: '/rooms' });
 
 export default {
   name: 'RoomList',
@@ -15,36 +11,38 @@ export default {
   },
   methods: {
     clickRoom(id) {
-      this.$router.push({
-        name: 'Room',
-        params: { id },
-      });
+      this.$_toPage('Room', { id });
     },
     addRoom() {
       if (this.roomName !== '') {
         const data = {
           createTime: dayjs().format(),
           roomName: this.roomName,
-          master: this.userName,
+          master: this.$_userName,
         };
-        socket.emit('setRoom', data);
+
+        this.$axios
+          .post('/rooms', data)
+          .then(res => {
+            this.rooms.push(res.data);
+          })
+          .catch(err => {
+            console.log(err);
+          });
+
         this.roomName = '';
       }
     },
   },
   created() {
-    socket.on('rooms', data => {
-      this.rooms = data;
-    });
-
-    socket.on('pushRoom', data => {
-      this.rooms.push(data);
-    });
-
-    socket.emit('getRooms');
-  },
-  beforeDestroy() {
-    socket.close();
+    this.$axios
+      .get('/rooms')
+      .then(res => {
+        this.rooms = res.data;
+      })
+      .catch(err => {
+        console.log(err);
+      });
   },
 };
 </script>

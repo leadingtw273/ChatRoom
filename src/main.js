@@ -16,6 +16,14 @@ Vue.use(VueSocketio, io(ip.dev.chaos_server, { path: '/chaos' }));
 Vue.use(Vuelidate);
 Vue.mixin(mixin);
 
+router.beforeEach((to, from, next) => {
+    if (to.name !== 'Login' && store.state.key == null) {
+        next({ name: 'Login' });
+    } else {
+        next();
+    }
+});
+
 new Vue({
     router,
     store,

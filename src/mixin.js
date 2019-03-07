@@ -19,8 +19,12 @@ export default {
         },
     },
     methods: {
-        $_toPage(name) {
-            this.$router.push({ name });
+        $_toPage(name, params) {
+            if (params == null) {
+                this.$router.push({ name });
+            } else {
+                this.$router.push({ name, params });
+            }
         },
         $_timeSort(data, count = 1) {
             return data
@@ -53,7 +57,6 @@ export default {
                 .toString()
                 .replace(/\'/g, '"')
                 .replace(/\0/g, '');
-            console.log(dec_data);
             return JSON.parse(dec_data);
         },
     },

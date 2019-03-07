@@ -2,23 +2,34 @@
 import io from 'socket.io-client';
 import dayjs from 'dayjs';
 import ip from '../../config/ip.js';
+import _ from 'lodash';
+import HENMAP from '../plugins/HENMAP.js';
 
-const back_socket = io(ip.dev.backend, { path: '/messages' });
+const chaos = new HENMAP(0.00001, [-0.0001, 0.0001]);
+
+let back_socket = {};
 
 export default {
   name: 'Room',
   sockets: {
+    chaos_next_um({ _x, _step, _isSync }) {
+      this.isSync = _isSync;
+      if (!this.isSync) {
+        this.chaosValue.step = _step + 1;
+        this.chaosValue.x = chaos.runChaos(this.chaosValue.step, _x);
+        this.chaosValue.um = chaos.createUm(this.chaosValue.x);
+
+        this.$socket.emit('chaos_um', _.cloneDeep(this.chaosValue));
+      }
+    },
     encrypt_data(data) {
       const dec_data = this.$_decryptData(data);
 
       back_socket.emit('setMessage', {
-        roomId: this.$_roomId,
-        message: {
-          createTime: dayjs().format(),
-          from: this.$_userName,
-          message: dec_data._target,
-          Um: dec_data._Um,
-        },
+        createTime: dayjs().format(),
+        from: this.$_userName,
+        message: dec_data._target,
+        Um: dec_data._Um,
       });
     },
     decrypt_data(data) {
@@ -33,10 +44,36 @@ export default {
       messages: [],
       message: '',
       key: '',
+      isSync: false,
+      chaosValue: {
+        step: 100,
+        x: [],
+        um: 0,
+      },
     };
   },
+  watch: {
+    isSync(val) {
+      if (val) {
+        const key = this.chaosValue.x
+          .map(val => val.toString().slice(0, val.toString().indexOf('.') + 5))
+          .join('/');
+        this.$store.commit('SET_PRIVATE_KEY', { key });
+      }
+    },
+  },
   methods: {
-    dec_message(msg) {
+    startChaosSync() {
+      const CHAOS_INIT_VALUE = chaos.getRandomInitValue();
+
+      const step = 100;
+      const x = chaos.chaosInit(CHAOS_INIT_VALUE, step);
+      const um = chaos.createUm(x);
+
+      this.chaosValue = { x, step, um };
+      this.$socket.emit('chaos_ready', this.chaosValue);
+    },
+    decMessage(msg) {
       return Buffer.from(msg, 'hex').toString();
     },
     addMsg() {
@@ -53,7 +90,7 @@ export default {
       if (this.key !== '') {
         this.reLoadDisabled = true;
         this.messages = [];
-        back_socket.emit('getMessage', { id: this.$_roomId });
+        back_socket.emit('getMessage');
       }
     },
   },
@@ -62,6 +99,10 @@ export default {
     scrollItem.scrollTop = scrollItem.scrollHeight;
   },
   created() {
+    this.startChaosSync();
+
+    back_socket = io(ip.dev.backend);
+
     back_socket.on('messages', data => {
       data.forEach(cryptData => {
         const enc_data = this.$_encrypData({
@@ -86,9 +127,14 @@ export default {
       this.$socket.emit('decrypt', enc_data);
     });
 
-    back_socket.emit('getMessage', { id: this.$_roomId });
+    back_socket.on('system', data => {
+      console.log(data);
+    });
+
+    back_socket.emit('join', this.$_userName);
   },
   beforeDestroy() {
+    back_socket.emit('leave');
     back_socket.close();
   },
 };
@@ -108,14 +154,20 @@ export default {
               <i class="fas fa-key"></i>
             </div>
           </div>
-          <input type="text" class="form-control" placeholder="Room's Key" v-model.trim="key">
+          <input
+            type="text"
+            class="form-control"
+            :disabled="!isSync"
+            placeholder="Room's Key"
+            v-model.trim="key"
+          >
         </div>
       </div>
       <div class="col-sm-3 d-flex justify-content-end">
         <button
           class="btn btn-primary my-1"
           type="button"
-          :disabled="reLoadDisabled"
+          :disabled=" !isSync || reLoadDisabled"
           @click="setKey()"
         >RELOAD</button>
       </div>
@@ -131,7 +183,7 @@ export default {
             :class="['name', message.from === $_userName ? 'text-primary' : 'text-info']"
           >{{message.from}}</p>
           <div class="text d-flex justify-content-between align-items-end">
-            <span class="text-message">{{dec_message(message.message)}}</span>
+            <span class="text-message">{{decMessage(message.message)}}</span>
             <span class="text-time">{{$_timeFormat(message.createTime, 'YYYY/MM/DD HH:mm:ss')}}</span>
           </div>
         </div>
@@ -146,7 +198,7 @@ export default {
               class="btn btn-primary"
               type="button"
               @click="addMsg()"
-              :disabled="key === ''"
+              :disabled="!isSync || reLoadDisabled"
             >send</button>
           </div>
         </div>
