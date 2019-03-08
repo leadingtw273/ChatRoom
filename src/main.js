@@ -1,5 +1,4 @@
 import Vue from 'vue';
-import './plugins/axios';
 import 'bootstrap';
 import './assets//style/all.scss';
 import mixin from './mixin.js';

@@ -17,6 +17,9 @@ export default {
         $_routeName() {
             return this.$route.name;
         },
+        $_rooms() {
+            return this.$store.getters.getRooms;
+        },
     },
     methods: {
         $_toPage(name, params) {

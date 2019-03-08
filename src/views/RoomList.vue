@@ -6,7 +6,6 @@ export default {
   data() {
     return {
       roomName: '',
-      rooms: [],
     };
   },
   methods: {
@@ -14,35 +13,25 @@ export default {
       this.$_toPage('Room', { id });
     },
     addRoom() {
-      if (this.roomName !== '') {
-        const data = {
-          createTime: dayjs().format(),
-          roomName: this.roomName,
-          master: this.$_userName,
-        };
-
-        this.$axios
-          .post('/rooms', data)
-          .then(res => {
-            this.rooms.push(res.data);
-          })
-          .catch(err => {
-            console.log(err);
-          });
-
-        this.roomName = '';
+      if (this.$_userName == null) {
+        this.router.push({ name: 'Login' });
       }
+
+      const data = {
+        createTime: dayjs().format(),
+        roomName: this.roomName,
+        master: this.$_userName,
+      };
+
+      this.$store.dispatch('addRoom', data);
+      this.roomName = '';
+    },
+    getRooms() {
+      this.$store.dispatch('getRooms');
     },
   },
   created() {
-    this.$axios
-      .get('/rooms')
-      .then(res => {
-        this.rooms = res.data;
-      })
-      .catch(err => {
-        console.log(err);
-      });
+    this.getRooms();
   },
 };
 </script>
@@ -54,38 +43,36 @@ export default {
       <hr>
     </div>
     <div class="w-100 d-flex">
-      <button
-        type="button"
-        class="btn btn-primary"
-        data-toggle="collapse"
-        data-target="#collapseExample"
-      >
-        <i class="fas fa-plus-circle"></i>
-      </button>
-      <div class="collapse w-100" id="collapseExample">
-        <div class="card card-body">
-          <form>
-            <div class="form-row align-items-center">
-              <div class="col-sm-10">
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <div class="input-group-text">
-                      <i class="fas fa-warehouse"></i>
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Room's Name"
-                    v-model.trim="roomName"
-                  >
+      <div class="card card-body">
+        <div class="row align-items-center">
+          <div class="col-sm-2">
+            <button class="btn btn-success" type="button" @click="getRooms">
+              <i class="fas fa-redo-alt"></i>
+            </button>
+          </div>
+          <div class="col-sm-8">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="fas fa-warehouse"></i>
                 </div>
               </div>
-              <div class="col-sm-2 d-flex justify-content-end">
-                <button class="btn btn-primary my-1" type="button" @click="addRoom">NEW</button>
-              </div>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Room's Name"
+                v-model.trim="roomName"
+              >
             </div>
-          </form>
+          </div>
+          <div class="col-sm-2">
+            <button
+              class="btn btn-primary"
+              type="button"
+              @click="addRoom"
+              :disabled="roomName.length === 0"
+            >NEW</button>
+          </div>
         </div>
       </div>
     </div>
@@ -93,7 +80,7 @@ export default {
       <a
         href="javascript:;"
         class="list-group-item list-group-item-action d-flex justify-content-center"
-        v-for="(room, index) in $_timeSort(rooms)"
+        v-for="(room, index) in $_timeSort($_rooms)"
         :key="room.id"
         @click="clickRoom(room.id)"
       >

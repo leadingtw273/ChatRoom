@@ -40,7 +40,7 @@ export default {
   },
   data() {
     return {
-      reLoadDisabled: true,
+      reLoadDisabled: false,
       messages: [],
       message: '',
       key: '',
@@ -167,7 +167,7 @@ export default {
         <button
           class="btn btn-primary my-1"
           type="button"
-          :disabled=" !isSync || reLoadDisabled"
+          :disabled=" reLoadDisabled"
           @click="setKey()"
         >RELOAD</button>
       </div>
@@ -198,7 +198,7 @@ export default {
               class="btn btn-primary"
               type="button"
               @click="addMsg()"
-              :disabled="!isSync || reLoadDisabled"
+              :disabled="reLoadDisabled"
             >send</button>
           </div>
         </div>
