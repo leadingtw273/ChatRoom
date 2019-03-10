@@ -1,13 +1,13 @@
 import f from 'float';
 
-const _Map = new WeakMap();
+const _private = new WeakMap();
 
 class Chaos {
     /**
      * Chaos 的 constructor
      */
     constructor(A, c) {
-        _Map.set(this, {
+        _private.set(this, {
             A: 0,
             c: [],
             ax: [1, 1, 1],
@@ -18,7 +18,7 @@ class Chaos {
             count: 0,
         });
 
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         privateData.A = A;
         privateData.c = c;
 
@@ -29,7 +29,7 @@ class Chaos {
      * 設定調變參數
      */
     setModulation(ax, dx) {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         privateData.ax = ax;
         privateData.dx = dx;
 
@@ -41,7 +41,7 @@ class Chaos {
      * 求出 (g) (h) (j) 的值
      */
     runModulation() {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         let ax = privateData.ax;
         let dx = privateData.dx;
 
@@ -66,7 +66,7 @@ class Chaos {
      * 混沌運算
      */
     runChaos(k, x) {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         let t = [];
 
         let g = privateData.g;
@@ -122,7 +122,7 @@ class Chaos {
      * 計算主端控制器(Um)
      */
     createUm(x) {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         let A = privateData.A;
         let c = privateData.c;
         let g = privateData.g;
@@ -146,7 +146,7 @@ class Chaos {
      * 計算僕端控制器(Us)
      */
     createUs(y) {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         let A = privateData.A;
         let c = privateData.c;
         let g = privateData.g;
@@ -170,7 +170,7 @@ class Chaos {
      * 確認兩混沌系統是否同步
      */
     checkSync(Us, Um) {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         let sync = false;
 
         Um = f.round(Um, 4);
@@ -221,7 +221,7 @@ class Chaos {
      * 顯示測試
      */
     show() {
-        let privateData = _Map.get(this);
+        let privateData = _private.get(this);
         console.log(
             `A = ${privateData.A}, c = ${privateData.c}, g = ${
                 privateData.g

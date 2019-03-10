@@ -1,13 +1,13 @@
 import crypto from 'crypto';
 
-let _aesParam = new WeakMap();
+let _private = new WeakMap();
 
 class AES {
     /**
      * AES 的 constructor
      */
     constructor(aes, ...opt) {
-        _aesParam.set(this, {
+        _private.set(this, {
             aesMode: aes,
             hashMode: opt[0] ? opt[0] : null,
             iv: opt[1] ? opt[1] : null,
@@ -18,7 +18,7 @@ class AES {
      * 將傳入值進行hash運算
      */
     setKey(crptKey) {
-        let privateData = _aesParam.get(this);
+        let privateData = _private.get(this);
         // hash 混沌產生值 轉成對稱金鑰
         if (null != privateData.hashMode) {
             return crypto
@@ -34,7 +34,7 @@ class AES {
      * 將傳入值進行AES加密運算
      */
     encryp(data, key) {
-        let privateData = _aesParam.get(this);
+        let privateData = _private.get(this);
         let aes256Enc = null;
         let sendData = Buffer.alloc(16);
         while (data.length % 16 != 0) {
@@ -63,7 +63,7 @@ class AES {
      * 將傳入值進行AES解密運算
      */
     decryp(data, key) {
-        let privateData = _aesParam.get(this);
+        let privateData = _private.get(this);
         let aes256Dec = null;
         let getData = Buffer.alloc(16);
         try {

@@ -1,24 +1,38 @@
 <script>
-import dayjs from 'dayjs';
+import { minLength, maxLength } from 'vuelidate/lib/validators';
 
 export default {
   name: 'RoomList',
+  validations: {
+    roomName: {
+      minLength: minLength(3),
+      maxLength: maxLength(10),
+    },
+  },
   data() {
     return {
       roomName: '',
     };
+  },
+  computed: {
+    roomNameErrors() {
+      const errors = [];
+      if (!this.$v.roomName.$dirty) return errors;
+      !this.$v.roomName.minLength && errors.push('最少3個字');
+      !this.$v.roomName.maxLength && errors.push('最多10個字');
+
+      return errors;
+    },
   },
   methods: {
     clickRoom(id) {
       this.$_toPage('Room', { id });
     },
     addRoom() {
-      if (this.$_userName == null) {
-        this.router.push({ name: 'Login' });
-      }
+      this.$v.roomName.$touch();
+      if (this.$v.roomName.$invalid) return false;
 
       const data = {
-        createTime: dayjs().format(),
         roomName: this.roomName,
         master: this.$_userName,
       };
@@ -26,12 +40,12 @@ export default {
       this.$store.dispatch('addRoom', data);
       this.roomName = '';
     },
-    getRooms() {
-      this.$store.dispatch('getRooms');
+    getRoomList() {
+      this.$store.dispatch('getRoomList');
     },
   },
   created() {
-    this.getRooms();
+    this.getRoomList();
   },
 };
 </script>
@@ -39,18 +53,18 @@ export default {
 <template>
   <div class="ChatRoomList">
     <div>
-      <h1>ChatRoomList</h1>
+      <h1>Room List</h1>
       <hr>
     </div>
     <div class="w-100 d-flex">
       <div class="card card-body">
         <div class="row align-items-center">
           <div class="col-sm-2">
-            <button class="btn btn-success" type="button" @click="getRooms">
+            <button class="btn btn-success" type="button" @click="getRoomList()">
               <i class="fas fa-redo-alt"></i>
             </button>
           </div>
-          <div class="col-sm-8">
+          <div class="col-sm-8" style="text-align: left">
             <div class="input-group">
               <div class="input-group-prepend">
                 <div class="input-group-text">
@@ -60,10 +74,16 @@ export default {
               <input
                 type="text"
                 class="form-control"
+                :class="[$v.roomName.$dirty && $v.roomName.$error?'is-invalid':'']"
                 placeholder="Room's Name"
+                @blur="$v.roomName.$touch()"
                 v-model.trim="roomName"
               >
             </div>
+            <span class="small text-danger" v-for="error in roomNameErrors" :key="error">
+              <i class="fas fa-exclamation-circle mr-2"></i>
+              <em>{{error}}</em>
+            </span>
           </div>
           <div class="col-sm-2">
             <button
@@ -80,7 +100,7 @@ export default {
       <a
         href="javascript:;"
         class="list-group-item list-group-item-action d-flex justify-content-center"
-        v-for="(room, index) in $_timeSort($_rooms)"
+        v-for="(room, index) in $_timeSort($_roomList)"
         :key="room.id"
         @click="clickRoom(room.id)"
       >

@@ -1,97 +1,75 @@
 <script>
 import io from 'socket.io-client';
-import dayjs from 'dayjs';
 import ip from '../../config/ip.js';
-import _ from 'lodash';
-import HENMAP from '../plugins/HENMAP.js';
+import E2E from '../services/E2E.js';
+import ChaosSync from '../services/ChaosSync.js';
 
-const chaos = new HENMAP(0.00001, [-0.0001, 0.0001]);
-
-let back_socket = {};
+let _chaosSync = {};
+let _e2e = {};
+let _messageSocket = {};
 
 export default {
   name: 'Room',
   sockets: {
-    chaos_next_um({ _x, _step, _isSync }) {
-      this.isSync = _isSync;
-      if (!this.isSync) {
-        this.chaosValue.step = _step + 1;
-        this.chaosValue.x = chaos.runChaos(this.chaosValue.step, _x);
-        this.chaosValue.um = chaos.createUm(this.chaosValue.x);
-
-        this.$socket.emit('chaos_um', _.cloneDeep(this.chaosValue));
+    UmCatch(isSync) {
+      if (!isSync) {
+        _chaosSync.runChaos();
+        this.$socket.emit('UmPush', _chaosSync.getUm());
+      } else {
+        console.log('[Chaos Sync Success!!]');
+        this.isSync = true;
+        _e2e = new E2E(_chaosSync.getKey());
+        _messageSocket.emit('join', this.$_userName);
       }
     },
-    encrypt_data(data) {
-      const dec_data = this.$_decryptData(data);
+    e2eEncryptReturn(data) {
+      const dec_data = _e2e.decrypt(data);
 
-      back_socket.emit('setMessage', {
-        createTime: dayjs().format(),
+      _messageSocket.emit('setMessage', {
         from: this.$_userName,
         message: dec_data._target,
         Um: dec_data._Um,
       });
     },
-    decrypt_data(data) {
-      const { createTime, from, id, _target } = this.$_decryptData(data);
+    e2eDecryptReturn(data) {
+      const { createTime, from, id, _target } = _e2e.decrypt(data);
       this.messages.push({ createTime, from, id, message: _target });
-      this.reLoadDisabled = false;
     },
   },
   data() {
     return {
-      reLoadDisabled: false,
+      reLoad: false,
+      keySet: false,
+      isSync: false,
       messages: [],
       message: '',
       key: '',
-      isSync: false,
-      chaosValue: {
-        step: 100,
-        x: [],
-        um: 0,
-      },
     };
   },
   watch: {
-    isSync(val) {
-      if (val) {
-        const key = this.chaosValue.x
-          .map(val => val.toString().slice(0, val.toString().indexOf('.') + 5))
-          .join('/');
-        this.$store.commit('SET_PRIVATE_KEY', { key });
-      }
+    key() {
+      this.keySet = false;
     },
   },
   methods: {
-    startChaosSync() {
-      const CHAOS_INIT_VALUE = chaos.getRandomInitValue();
-
-      const step = 100;
-      const x = chaos.chaosInit(CHAOS_INIT_VALUE, step);
-      const um = chaos.createUm(x);
-
-      this.chaosValue = { x, step, um };
-      this.$socket.emit('chaos_ready', this.chaosValue);
-    },
-    decMessage(msg) {
+    decHex(msg) {
       return Buffer.from(msg, 'hex').toString();
     },
     addMsg() {
-      if (this.message != '') {
-        const enc_data = this.$_encrypData({
-          _target: this.message,
-          _key: this.key,
-        });
-        this.$socket.emit('encrypt', enc_data);
-        this.message = '';
-      }
+      if (this.message === '') return false;
+
+      const enc_data = _e2e.encrypt({
+        _target: this.message,
+        _key: this.key,
+      });
+      this.$socket.emit('e2eEncrypt', enc_data);
+      this.message = '';
     },
     setKey() {
-      if (this.key !== '') {
-        this.reLoadDisabled = true;
-        this.messages = [];
-        back_socket.emit('getMessage');
-      }
+      this.keySet = true;
+      this.reLoad = true;
+      this.messages = [];
+      _messageSocket.emit('getMessage');
     },
   },
   updated() {
@@ -99,43 +77,43 @@ export default {
     scrollItem.scrollTop = scrollItem.scrollHeight;
   },
   created() {
-    this.startChaosSync();
+    _chaosSync = new ChaosSync();
+    this.$socket.emit('SyncReady', _chaosSync.getUm());
 
-    back_socket = io(ip.dev.backend);
+    _messageSocket = io(ip.API_Server);
 
-    back_socket.on('messages', data => {
+    _messageSocket.on('messages', data => {
+      this.reLoad = false;
       data.forEach(cryptData => {
-        const enc_data = this.$_encrypData({
+        const enc_data = _e2e.encrypt({
           _target: cryptData.message,
           _Um: cryptData.Um,
           _key: this.key,
           ...cryptData,
         });
 
-        this.$socket.emit('decrypt', enc_data);
+        this.$socket.emit('e2eDecrypt', enc_data);
       });
     });
 
-    back_socket.on('pushMessage', data => {
-      const enc_data = this.$_encrypData({
+    _messageSocket.on('pushMessage', data => {
+      const enc_data = _e2e.encrypt({
         _target: data.message,
         _Um: data.Um,
         _key: this.key,
         ...data,
       });
 
-      this.$socket.emit('decrypt', enc_data);
+      this.$socket.emit('e2eDecrypt', enc_data);
     });
 
-    back_socket.on('system', data => {
-      console.log(data);
+    _messageSocket.on('system', data => {
+      console.log('[System Info] : ', data);
     });
-
-    back_socket.emit('join', this.$_userName);
   },
   beforeDestroy() {
-    back_socket.emit('leave');
-    back_socket.close();
+    _messageSocket.emit('leave');
+    _messageSocket.close();
   },
 };
 </script>
@@ -143,11 +121,11 @@ export default {
 <template>
   <div class="ChatRoom">
     <div>
-      <h1>ChatRoom</h1>
+      <h1 class="text-info">{{$_getRoomName($_roomId)}}</h1>
       <hr>
     </div>
     <div class="form-row align-items-center mb-3">
-      <div class="col-sm-9">
+      <div class="col-sm-12">
         <div class="input-group">
           <div class="input-group-prepend">
             <div class="input-group-text">
@@ -157,20 +135,25 @@ export default {
           <input
             type="text"
             class="form-control"
-            :disabled="!isSync"
             placeholder="Room's Key"
             v-model.trim="key"
+            maxlength="60"
           >
+          <div class="input-group-append">
+            <button
+              class="btn btn-primary"
+              :class="[keySet ? 'btn-success':'btn-info']"
+              type="button"
+              :disabled=" reLoad || keySet || !isSync || key === ''"
+              @click="setKey()"
+            >
+              <i class="far fa-check-circle" v-if="keySet"></i>
+              <i class="fas fa-redo-alt" v-else></i>
+            </button>
+          </div>
         </div>
       </div>
-      <div class="col-sm-3 d-flex justify-content-end">
-        <button
-          class="btn btn-primary my-1"
-          type="button"
-          :disabled=" reLoadDisabled"
-          @click="setKey()"
-        >RELOAD</button>
-      </div>
+      <div class="col-sm-3 d-flex justify-content-end"></div>
     </div>
     <div class="border-chat p-3">
       <div class="message-bar">
@@ -182,8 +165,10 @@ export default {
           <p
             :class="['name', message.from === $_userName ? 'text-primary' : 'text-info']"
           >{{message.from}}</p>
-          <div class="text d-flex justify-content-between align-items-end">
-            <span class="text-message">{{decMessage(message.message)}}</span>
+          <div class="text d-flex">
+            <span class="text-message">{{decHex(message.message)}}</span>
+          </div>
+          <div class="text d-flex justify-content-end mt-2">
             <span class="text-time">{{$_timeFormat(message.createTime, 'YYYY/MM/DD HH:mm:ss')}}</span>
           </div>
         </div>
@@ -191,14 +176,21 @@ export default {
       <div class="input-bar px-3">
         <hr class="my-3">
         <div class="input-group">
-          <input type="text" class="form-control" placeholder="text" v-model="message">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="text"
+            maxlength="50"
+            v-model="message"
+            :disabled="reLoad || !keySet|| !isSync"
+          >
           <div class="input-group-append">
             <span class="input-group-text" id="basic-addon1">{{$_userName}}</span>
             <button
               class="btn btn-primary"
               type="button"
               @click="addMsg()"
-              :disabled="reLoadDisabled"
+              :disabled="reLoad || !keySet|| !isSync || message === ''"
             >send</button>
           </div>
         </div>
@@ -221,6 +213,8 @@ export default {
       height: calc(100% - 100px);
       width: 100%;
       overflow-y: scroll;
+
+      padding-right: 10px;
       > .user {
         color: $primary;
       }
@@ -239,7 +233,7 @@ export default {
           font-weight: bold;
         }
         .text {
-          word-wrap: break-word;
+          word-break: break-all;
           .text-time {
             font-size: 12px;
           }

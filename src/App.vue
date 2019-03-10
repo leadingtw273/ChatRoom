@@ -11,21 +11,16 @@
 import TheNavbar from './components/TheNavbar.vue';
 
 export default {
-    name: 'App',
-    components: {
-        TheNavbar,
-    },
-    data() {
-        return {
-            //
-        };
-    },
+  name: 'App',
+  components: {
+    TheNavbar,
+  },
 };
 </script>
 <style lang="scss">
 #app {
-    font-family: 'Avenir', Helvetica, Arial, sans-serif;
-    text-align: center;
+  font-family: 'Avenir', Helvetica, Arial, sans-serif, '微軟正黑體';
+  text-align: center;
 }
 </style>
 

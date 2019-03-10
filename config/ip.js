@@ -1,10 +1,10 @@
 export default {
-    dev: {
-        backend: 'http://localhost:3000',
-        chaos_server: 'http://192.168.0.2:9453',
-    },
-    pro: {
-        backend: 'http://localhost:3000',
-        chaos_server: 'http://192.168.0.4:9453',
-    },
+  API_Server:
+    process.env.NODE_ENV === 'production'
+      ? process.env.API_SERVER
+      : 'http://192.168.0.8:3000',
+  Chaos_Server:
+    process.env.NODE_ENV === 'production'
+      ? process.env.CHAOS_SERVER
+      : 'http://192.168.0.6:9453',
 };

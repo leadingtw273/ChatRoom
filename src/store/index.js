@@ -8,40 +8,38 @@ vue.use(vuex);
 export default new vuex.Store({
     strict: true,
     state: {
-        rooms: [],
+        roomList: [],
         user: null,
-        key: null,
     },
     mutations: {
         SET_USER(state, { user }) {
             state.user = user;
         },
-        SET_PRIVATE_KEY(state, { key }) {
-            state.key = key;
+        SET_ROOM_LIST(state, { roomList }) {
+            state.roomList = roomList;
         },
-        SET_ROOMS(state, { rooms }) {
-            state.rooms = rooms;
-        },
-        SET_ROOM(state, { room }) {
-            state.rooms.push(room);
+        PUSH_ROOM(state, { room }) {
+            state.roomList.push(room);
         },
     },
     getters: {
-        getUser(state) {
+        userName(state) {
             return state.user;
         },
-        getKey(state) {
-            return state.key;
+        roomList(state) {
+            return state.roomList;
         },
-        getRooms(state) {
-            return state.rooms;
+        roomName(state, getters) {
+            return id => {
+                return getters.roomList.find(room => room.id === id).roomName;
+            };
         },
     },
     actions: {
-        async getRooms({ commit }) {
+        async getRoomList({ commit }) {
             try {
                 const { data } = await axios.get('/rooms');
-                commit('SET_ROOMS', { rooms: data });
+                commit('SET_ROOM_LIST', { roomList: data });
             } catch (err) {
                 console.log(err);
             }
@@ -49,7 +47,7 @@ export default new vuex.Store({
         async addRoom({ commit }, room) {
             try {
                 const { data } = await axios.post('/rooms', room);
-                commit('SET_ROOM', { room: data });
+                commit('PUSH_ROOM', { room: data });
             } catch (err) {
                 console.log(err);
             }
