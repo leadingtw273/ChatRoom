@@ -1,6 +1,5 @@
 'use strict';
 import axios from 'axios';
-import ip from '../../config/ip.js';
 
 // Full config:  https://github.com/axios/axios#request-config
 // axios.defaults.baseURL = process.env.baseURL || process.env.apiUrl || '';
@@ -8,7 +7,7 @@ import ip from '../../config/ip.js';
 // axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
 
 const config = {
-  baseURL: ip.API_Server,
+  baseURL: process.env.VUE_APP_API,
   timeout: 60 * 1000, // Timeout
   withCredentials: false, // Check cross-site Access-Control
 };

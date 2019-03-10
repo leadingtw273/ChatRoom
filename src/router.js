@@ -8,23 +8,26 @@ import Room from './views/Room.vue';
 Vue.use(Router);
 
 export default new Router({
-    mode: 'history',
-    base: process.env.BASE_URL,
-    routes: [
-        {
-            path: '/',
-            name: 'Login',
-            component: Login,
-        },
-        {
-            path: '/rooms',
-            name: 'RoomList',
-            component: RoomList,
-        },
-        {
-            path: '/rooms/:id',
-            name: 'Room',
-            component: Room,
-        },
-    ],
+  mode: 'history',
+  routes: [
+    {
+      path: '/',
+      name: 'Login',
+      component: Login,
+    },
+    {
+      path: '/rooms',
+      name: 'RoomList',
+      component: RoomList,
+    },
+    {
+      path: '/rooms/:id',
+      name: 'Room',
+      component: Room,
+    },
+    {
+      path: '*',
+      component: Login,
+    },
+  ],
 });

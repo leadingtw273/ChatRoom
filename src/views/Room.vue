@@ -1,6 +1,5 @@
 <script>
 import io from 'socket.io-client';
-import ip from '../../config/ip.js';
 import E2E from '../services/E2E.js';
 import ChaosSync from '../services/ChaosSync.js';
 
@@ -80,7 +79,7 @@ export default {
     _chaosSync = new ChaosSync();
     this.$socket.emit('SyncReady', _chaosSync.getUm());
 
-    _messageSocket = io(ip.API_Server);
+    _messageSocket = io(process.env.VUE_APP_API);
 
     _messageSocket.on('messages', data => {
       this.reLoad = false;

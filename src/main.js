@@ -8,13 +8,12 @@ import store from './store';
 import Vuelidate from 'vuelidate';
 import VueSocketio from 'vue-socket.io-extended';
 import io from 'socket.io-client';
-import ip from '../config/ip.js';
 
 Vue.config.productionTip = false;
-Vue.use(VueSocketio, io(ip.Chaos_Server, { path: '/chaos' }));
+Vue.use(VueSocketio, io(process.env.VUE_APP_CHAOS, { path: '/chaos' }));
 Vue.use(Vuelidate);
 Vue.mixin(mixin);
-console.log(process.env.NODE_ENV);
+
 router.beforeEach((to, from, next) => {
   if (to.name !== 'Login' && store.state.user == null) {
     next({ name: 'Login' });

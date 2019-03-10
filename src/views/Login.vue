@@ -32,7 +32,6 @@ export default {
       if (this.$v.userName.$invalid) return false;
 
       this.$store.commit('SET_USER', { user: this.userName });
-      console.log(process.env.BASE_URL);
       this.$router.push({ name: 'RoomList' });
     },
   },

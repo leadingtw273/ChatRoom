@@ -5,15 +5,18 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "server": "nodemon app.js"
   },
   "dependencies": {
     "bootstrap": "^4.3.1",
+    "connect-history-api-fallback": "^1.6.0",
     "crypto": "^1.0.1",
     "crypto-js": "^3.1.9-1",
     "dayjs": "^1.8.6",
     "eslint-config-prettier": "^4.0.0",
     "eslint-plugin-prettier": "^3.0.1",
+    "express": "^4.16.4",
     "float": "^1.0.2",
     "jquery": "^3.3.1",
     "lodash": "^4.17.11",
