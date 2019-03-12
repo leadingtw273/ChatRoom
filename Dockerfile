@@ -17,5 +17,5 @@ ENV NPM_CONFIG_LOGLEVEL warn
 RUN npm install --production
 
 # Expose the listening port of your app
-EXPOSE 8084 
+EXPOSE 5000
 CMD [ "pm2-runtime", "start", "pm2.config.js" ]
