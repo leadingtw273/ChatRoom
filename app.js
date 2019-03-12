@@ -14,6 +14,8 @@ app.get('*', function(req, res) {
   );
   res.send(html);
 });
-app.listen(8084, () => {
-  console.log('app listening on port 8084.');
+
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`app listening on port ${port}.`);
 });
