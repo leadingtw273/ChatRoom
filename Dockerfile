@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npm run build-lan
 
 FROM keymetrics/pm2:8-alpine as production-stage
 COPY --from=build-stage /app/dist ./dist
