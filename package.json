@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "build-lan": "vue-cli-service build --mode lan",
-    "build-heroku": "vue-cli-service build --mode heroku",
+    "build": "vue-cli-service build --mode heroku",
     "lint": "vue-cli-service lint",
     "server": "nodemon app.js",
     "start": "node app.js"
