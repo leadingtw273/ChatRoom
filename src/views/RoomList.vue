@@ -56,46 +56,36 @@ export default {
       <h1>Room List</h1>
       <hr>
     </div>
-    <div class="w-100 d-flex">
-      <div class="card card-body">
-        <div class="row align-items-center">
-          <div class="col-sm-2">
-            <button class="btn btn-success" type="button" @click="getRoomList()">
-              <i class="fas fa-redo-alt"></i>
-            </button>
-          </div>
-          <div class="col-sm-8" style="text-align: left">
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <div class="input-group-text">
-                  <i class="fas fa-warehouse"></i>
-                </div>
-              </div>
-              <input
-                type="text"
-                class="form-control"
-                :class="[$v.roomName.$dirty && $v.roomName.$error?'is-invalid':'']"
-                placeholder="Room's Name"
-                @blur="$v.roomName.$touch()"
-                v-model.trim="roomName"
-              >
-            </div>
-            <span class="small text-danger" v-for="error in roomNameErrors" :key="error">
-              <i class="fas fa-exclamation-circle mr-2"></i>
-              <em>{{error}}</em>
-            </span>
-          </div>
-          <div class="col-sm-2">
-            <button
-              class="btn btn-primary"
-              type="button"
-              @click="addRoom"
-              :disabled="roomName.length === 0"
-            >NEW</button>
-          </div>
+    <div class="input-group">
+      <div class="input-group-prepend">
+        <button class="btn btn-success" type="button" @click="getRoomList()">
+          <i class="fas fa-redo-alt"></i>
+        </button>
+        <div class="input-group-text">
+          <i class="fas fa-warehouse"></i>
         </div>
       </div>
+      <input
+        type="text"
+        class="form-control"
+        :class="[$v.roomName.$dirty && $v.roomName.$error?'is-invalid':'']"
+        placeholder="Room's Name"
+        @blur="$v.roomName.$touch()"
+        v-model.trim="roomName"
+      >
+      <div class="input-group-append">
+        <button
+          class="btn btn-primary"
+          type="button"
+          @click="addRoom"
+          :disabled="roomName.length === 0"
+        >NEW</button>
+      </div>
     </div>
+    <span class="small text-danger" v-for="error in roomNameErrors" :key="error">
+      <i class="fas fa-exclamation-circle mr-2"></i>
+      <em>{{error}}</em>
+    </span>
     <div class="list-group mt-4">
       <a
         href="javascript:;"
