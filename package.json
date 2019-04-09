@@ -6,6 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "build-lan": "vue-cli-service build --mode lan",
+    "build-dev": "vue-cli-service build --mode develop",
     "build-netlify": "vue-cli-service build --mode netlify",
     "lint": "vue-cli-service lint",
     "server": "nodemon app.js",

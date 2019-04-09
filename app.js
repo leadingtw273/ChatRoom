@@ -4,8 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const app = express();
 
+const nginxProxyPath = '/chatroom';
+
 app.use(history());
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(nginxProxyPath, express.static(path.join(__dirname, 'dist')));
 
 app.get('*', function(req, res) {
   const html = fs.readFileSync(

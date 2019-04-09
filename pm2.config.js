@@ -4,6 +4,7 @@ module.exports = {
       name: 'Chatroom_Fontend',
       script: './app.js',
       exec_mode: 'cluster',
+      watch: true,
       env: {
         NODE_ENV: 'development',
       },
