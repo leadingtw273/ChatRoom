@@ -1,21 +1,10 @@
 const express = require('express');
 const history = require('connect-history-api-fallback');
 const path = require('path');
-const fs = require('fs');
 const app = express();
 
-const nginxProxyPath = '/chatroom';
-
 app.use(history());
-app.use(nginxProxyPath, express.static(path.join(__dirname, 'dist')));
-
-app.get('*', function(req, res) {
-  const html = fs.readFileSync(
-    path.resolve(__dirname, './dist/index.html'),
-    'utf-8'
-  );
-  res.send(html);
-});
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
