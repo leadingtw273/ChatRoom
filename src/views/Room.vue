@@ -79,8 +79,8 @@ export default {
     _chaosSync = new ChaosSync();
     this.$socket.emit('SyncReady', _chaosSync.getUm());
 
-    _messageSocket = io(process.env.VUE_APP_API_SOCKET, {
-      path: '/chatroom/socket/',
+    _messageSocket = io(process.env.VUE_APP_SERVER_URL, {
+      path: process.env.VUE_APP_API_SOCKET_PATH,
     });
 
     _messageSocket.on('messages', data => {
