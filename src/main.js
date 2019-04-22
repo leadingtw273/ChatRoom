@@ -10,7 +10,7 @@ import VueSocketio from 'vue-socket.io-extended';
 import io from 'socket.io-client';
 
 Vue.config.productionTip = false;
-Vue.use(VueSocketio, io(process.env.VUE_APP_CHAOS, { path: '/chaos/api/' }));
+Vue.use(VueSocketio, io(process.env.VUE_APP_CHAOS, { path: '/chaos/socket/' }));
 Vue.use(Vuelidate);
 Vue.mixin(mixin);
 
