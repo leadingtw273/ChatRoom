@@ -12,7 +12,7 @@ import io from 'socket.io-client';
 Vue.config.productionTip = false;
 Vue.use(
   VueSocketio,
-  io(process.env.VUE_APP_SERVER_URL, {
+  io(process.env.VUE_APP_CHAOS_SERVER_URL, {
     path: process.env.VUE_APP_CHAOS_SOCKET_PATH,
   })
 );
